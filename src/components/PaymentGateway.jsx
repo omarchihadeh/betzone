@@ -35,7 +35,8 @@ export default function PaymentGateway() {
       return () => clearTimeout(timer)
     } else if (step === 4 && redirectCountdown === 0) {
       // Auto redirect to betzone with amount after success
-      window.location.href = `http://localhost:5173?deposit=${amount}&method=Payorio`
+      window.location.href = `https://betzone-demo.vercel.app?deposit=${amount}&method=Payorio`
+      // window.location.href = `http://localhost:5173?deposit=${amount}&method=Payorio`
     }
   }, [step, redirectCountdown, amount])
 

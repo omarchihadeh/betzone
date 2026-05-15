@@ -30,7 +30,8 @@ export default function DepositModal({ onClose, onDeposit }) {
       if (method === 'Payorio') {
         setIsRedirecting(true)
         setTimeout(() => {
-          window.location.href = `http://localhost:5174?amount=${amt}`
+          window.location.href = `https://betzone-payment.vercel.app?amount=${amt}`
+          // window.location.href = `http://localhost:5174?amount=${amt}`
         }, 3000)
         return
       }

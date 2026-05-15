@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { IS_PAYMENT } from './utils/constants'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import StatsBar from './components/StatsBar'
@@ -9,16 +10,71 @@ import DepositModal from './components/DepositModal'
 import WithdrawModal from './components/WithdrawModal'
 import Background from './components/Background'
 import Toast from './components/Toast'
+import PaymentGateway from './components/PaymentGateway'
 
 export default function App() {
-  const [balance, setBalance] = useState(0)
-  const [totalDeposits, setTotalDeposits] = useState(0)
-  const [transactions, setTransactions] = useState([])
-  const [bonus, setBonus] = useState(0)
+  const [balance, setBalance] = useState(() => {
+    const saved = localStorage.getItem('betzone_balance')
+    return saved ? parseFloat(saved) : 0
+  })
+  const [totalDeposits, setTotalDeposits] = useState(() => {
+    const saved = localStorage.getItem('betzone_totalDeposits')
+    return saved ? parseFloat(saved) : 0
+  })
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem('betzone_transactions')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [bonus, setBonus] = useState(() => {
+    const saved = localStorage.getItem('betzone_bonus')
+    return saved ? parseFloat(saved) : 0
+  })
   const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const [activeNav, setActiveNav] = useState('sports')
+
+  useEffect(() => {
+    localStorage.setItem('betzone_balance', balance.toString())
+  }, [balance])
+
+  useEffect(() => {
+    localStorage.setItem('betzone_totalDeposits', totalDeposits.toString())
+  }, [totalDeposits])
+
+  useEffect(() => {
+    localStorage.setItem('betzone_transactions', JSON.stringify(transactions))
+  }, [transactions])
+
+  useEffect(() => {
+    localStorage.setItem('betzone_bonus', bonus.toString())
+  }, [bonus])
+
+  // Handle deposit from payment gateway redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const depositAmount = params.get('deposit')
+    const depositMethod = params.get('method')
+    
+    if (depositAmount && depositMethod) {
+      const amount = parseFloat(depositAmount)
+      const bonusAmt = amount >= 1000 ? Math.round(amount * 0.05) : 0
+      
+      setBalance(b => b + amount)
+      setTotalDeposits(d => d + amount)
+      setBonus(bns => bns + bonusAmt)
+      setTransactions(txs => [{
+        id: Date.now(), type: 'deposit', amount, method: depositMethod, bonus: bonusAmt,
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      }, ...txs])
+      
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+      setToast({ msg: `₹${amount.toLocaleString('en-IN')} added via ${depositMethod}!`, type: 'success' })
+      setTimeout(() => setToast(null), 3500)
+    }
+  }, [])
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -49,6 +105,11 @@ export default function App() {
     }, ...txs])
     setWithdrawOpen(false)
     showToast(`₹${amount.toLocaleString('en-IN')} withdrawn via ${method}!`)
+  }
+
+  // If in payment mode -> render PaymentGateway
+  if (IS_PAYMENT) {
+    return <PaymentGateway />
   }
 
   return (

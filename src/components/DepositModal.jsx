@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { X, CheckCircle, Info } from 'lucide-react'
+import payorioLogo from '../assets/fav.svg'
 
 const PAYMENT_METHODS = [
-  { id: 'upi', name: 'UPI', emoji: '⚡', gradient: 'linear-gradient(135deg,#FF6B00,#FF9500)', color: '#FF6B00', sub: 'Google Pay, PhonePe, Paytm', recommended: true },
+  { id: 'payorio', name: 'Payorio', logo: payorioLogo, gradient: 'linear-gradient(135deg,#725BFD,#4EE5D8)', color: '#725BFD', sub: 'Fast & secure payments', recommended: true },
+  { id: 'upi', name: 'UPI', emoji: '⚡', gradient: 'linear-gradient(135deg,#FF6B00,#FF9500)', color: '#FF6B00', sub: 'Google Pay, PhonePe, Paytm' },
   { id: 'phonepe', name: 'PhonePe', emoji: '💜', gradient: 'linear-gradient(135deg,#6B21A8,#9333EA)', color: '#9333EA', sub: 'Direct transfer' },
   { id: 'gpay', name: 'Google Pay', emoji: '🟢', gradient: 'linear-gradient(135deg,#1A6B3C,#22C55E)', color: '#22C55E', sub: 'Instant via UPI' },
   { id: 'paytm', name: 'Paytm', emoji: '🔵', gradient: 'linear-gradient(135deg,#0057A8,#0080FF)', color: '#3B82F6', sub: 'Paytm Wallet / UPI' },
@@ -17,13 +19,24 @@ export default function DepositModal({ onClose, onDeposit }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState(null)
   const [step, setStep] = useState(1)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const amt = parseFloat(amount)
   const canProceed = amt >= 100 && method
   const bonusAmt = amt >= 1000 ? Math.round(amt * 0.05) : 0
 
   function handleProceed() {
     if (!canProceed) return
-    if (step === 1) { setStep(2); return }
+    if (step === 1) {
+      if (method === 'Payorio') {
+        setIsRedirecting(true)
+        setTimeout(() => {
+          window.location.href = `http://localhost:5174?amount=${amt}`
+        }, 3000)
+        return
+      }
+      setStep(2)
+      return
+    }
     onDeposit(amt, method)
   }
 
@@ -120,7 +133,7 @@ export default function DepositModal({ onClose, onDeposit }) {
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                     transition: 'all 0.2s', transform: method === pm.name ? 'scale(1.02)' : 'scale(1)'
                   }}>
-                    <span style={{ fontSize: 22 }}>{pm.emoji}</span>
+                    {pm.logo ? <img src={pm.logo} alt={pm.name} style={{ width: 32, height: 32 }} /> : <span style={{ fontSize: 22 }}>{pm.emoji}</span>}
                     <span style={{ fontSize: 14, fontWeight: 800, color: method === pm.name ? 'white' : '#F8FAFC' }}>{pm.name}</span>
                     <span style={{ fontSize: 10, color: method === pm.name ? 'rgba(255,255,255,0.7)' : '#64748B', textAlign: 'center' }}>{pm.sub}</span>
                     {method === pm.name && <CheckCircle size={14} color="white" />}
@@ -129,14 +142,14 @@ export default function DepositModal({ onClose, onDeposit }) {
               ))}
             </div>
 
-            <button onClick={handleProceed} disabled={!canProceed} style={{
+            <button onClick={handleProceed} disabled={!canProceed || isRedirecting} style={{
               width: '100%', padding: '15px',
-              background: canProceed ? 'linear-gradient(135deg,#FF6B00,#FF9500)' : 'rgba(255,255,255,0.05)',
-              border: 'none', borderRadius: 14, color: canProceed ? 'white' : '#475569',
-              fontSize: 16, fontWeight: 800, cursor: canProceed ? 'pointer' : 'not-allowed',
-              boxShadow: canProceed ? '0 6px 24px rgba(255,107,0,0.35)' : 'none', transition: 'all 0.2s'
+              background: !canProceed || isRedirecting ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#FF6B00,#FF9500)',
+              border: 'none', borderRadius: 14, color: !canProceed || isRedirecting ? '#475569' : 'white',
+              fontSize: 16, fontWeight: 800, cursor: !canProceed || isRedirecting ? 'not-allowed' : 'pointer',
+              boxShadow: !canProceed || isRedirecting ? 'none' : '0 6px 24px rgba(255,107,0,0.35)', transition: 'all 0.2s'
             }}>
-              {!amount || amt < 100 ? 'Enter Amount ₹100+' : !method ? 'Select Payment Method' : `Review Deposit of ${fmt(amt)} →`}
+              {isRedirecting ? 'Redirecting to Payment Gateway...' : (!amount || amt < 100 ? 'Enter Amount ₹100+' : !method ? 'Select Payment Method' : `Review Deposit of ${fmt(amt)} →`)}
             </button>
           </div>
         ) : (

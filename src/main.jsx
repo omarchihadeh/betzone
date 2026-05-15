@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')).render(
       </>
     ) : (
       <>
+        <link rel="icon" type="image/svg+xml" href="/fav.svg" />
         <title>BETZONE</title>
         <App />
       </>
